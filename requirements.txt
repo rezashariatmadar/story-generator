@@ -1,0 +1,13 @@
+Django==4.2.20
+djangorestframework==3.16.1
+python-decouple==3.8
+google-genai
+
+# Phase 2 - Export functionality
+reportlab==4.4.3
+weasyprint==66.0
+
+# Optional dependencies for future enhancements
+# celery==5.3.4  # For async processing
+# redis==5.0.1   # For caching and Celery broker
+# psycopg2-binary==2.9.9  # For PostgreSQL in production 

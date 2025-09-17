@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ story.title|default:"Story" }} - AI Story Generator{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Back Navigation -->
+    <div class="mb-4">
+        <a href="{% url 'stories:my_stories' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to My Stories
+        </a>
+    </div>
+    
+    <!-- Story Header -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <h1 class="display-5">{{ story.title|default:"Untitled Story" }}</h1>
+            <div class="story-meta mb-3">
+                <span class="badge bg-primary me-2">{{ story.get_genre_display }}</span>
+                <span class="badge bg-success me-2">{{ story.get_length_display }}</span>
+                <span class="badge bg-warning me-2">{{ story.get_tone_display }}</span>
+                {% if story.ai_model_used == 'gemini-2.5-flash' %}
+                    <span class="badge bg-info me-2">
+                        <i class="fas fa-robot"></i> AI Generated
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary me-2">
+                        <i class="fas fa-cogs"></i> Template
+                    </span>
+                {% endif %}
+            </div>
+            <p class="text-muted">
+                <i class="fas fa-calendar"></i> Created {{ story.created_at|date:"F d, Y" }} at {{ story.created_at|time:"g:i A" }}
+                <span class="ms-3">
+                    <i class="fas fa-quote-right"></i> {{ story.word_count }} words
+                </span>
+                {% if story.generation_time %}
+                    <span class="ms-3">
+                        <i class="fas fa-clock"></i> {{ story.generation_time|floatformat:2 }}s
+                    </span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <!-- Action Buttons -->
+            <div class="btn-group-vertical d-grid gap-2">
+                <button class="btn btn-outline-danger" 
+                        data-story-id="{{ story.id }}"
+                        onclick="toggleFavorite(this.dataset.storyId, this)">
+                    <i class="{% if story.is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                    {% if story.is_favorite %}Remove from{% else %}Add to{% endif %} Favorites
+                </button>
+                
+                <button class="btn btn-outline-info" 
+                        data-story-id="{{ story.id }}"
+                        onclick="togglePublic(this.dataset.storyId, this)">
+                    <i class="fas fa-{% if story.is_public %}eye-slash{% else %}globe{% endif %}"></i>
+                    Make {% if story.is_public %}Private{% else %}Public{% endif %}
+                </button>
+                
+                <button class="btn btn-outline-success" onclick="copyStory()">
+                    <i class="fas fa-copy"></i> Copy Text
+                </button>
+                
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="exportStory('txt')">
+                            <i class="fas fa-file-text"></i> Download as TXT
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportStory('pdf')">
+                            <i class="fas fa-file-pdf"></i> Download as PDF
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportStory('html')">
+                            <i class="fas fa-file-code"></i> Download as HTML
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Keywords Used -->
+    <div class="alert alert-light mb-4">
+        <h6 class="mb-2"><i class="fas fa-tags"></i> Keywords Used:</h6>
+        <span class="fw-bold">{{ story.keywords }}</span>
+    </div>
+    
+    <!-- Story Content -->
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <div class="story-content" style="line-height: 1.8; font-size: 1.1rem; text-align: justify;">
+                {{ story.content|linebreaks }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rating Section -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Rate This Story</h5>
+            <div class="d-flex align-items-center">
+                <span class="me-3">How would you rate this story?</span>
+                <div class="btn-group" role="group" aria-label="Story rating">
+                    {% for i in "12345" %}
+                        <input type="radio" class="btn-check" name="rating" 
+                               id="rating{{ i }}" value="{{ i }}"
+                               {% if story.rating == i|add:0 %}checked{% endif %}>
+                        <label class="btn btn-outline-warning" for="rating{{ i }}">
+                            {{ i }}⭐
+                        </label>
+                    {% endfor %}
+                </div>
+                {% if story.rating %}
+                    <span class="ms-3 text-muted">
+                        Current rating: {{ story.rating }}/5 stars
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Generate Another Story -->
+    <div class="text-center mt-5">
+        <a href="{% url 'stories:generate' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-magic"></i> Generate Another Story
+        </a>
+    </div>
+</div>
+
+<!-- Hidden textarea for copying -->
+<textarea id="story-text" style="position: absolute; left: -9999px;">{{ story.content }}</textarea>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Rating system
+document.querySelectorAll('input[name="rating"]').forEach(radio => {
+    radio.addEventListener('change', async function() {
+        try {
+            const response = await fetch(`/api/stories/{{ story.id }}/rate/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || 
+                                  document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                },
+                body: JSON.stringify({ rating: parseInt(this.value) })
+            });
+            
+            if (response.ok) {
+                // Update the display
+                const currentRating = document.querySelector('.text-muted:has([data-rating])');
+                if (currentRating) {
+                    currentRating.textContent = `Current rating: ${this.value}/5 stars`;
+                }
+                
+                // Show success message
+                showMessage('Story rated successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Error rating story:', error);
+            showMessage('Error rating story', 'danger');
+        }
+    });
+});
+
+async function toggleFavorite(storyId, button) {
+    try {
+        const response = await fetch(`/api/stories/${storyId}/favorite/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || 
+                              document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const icon = button.querySelector('i');
+            const text = button.childNodes[button.childNodes.length - 1];
+            
+            if (data.is_favorite) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                text.textContent = ' Remove from Favorites';
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                text.textContent = ' Add to Favorites';
+            }
+            
+            showMessage(data.message, 'success');
+        }
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+        showMessage('Error updating favorite status', 'danger');
+    }
+}
+
+function togglePublic(storyId, button) {
+    // This would need an API endpoint to toggle public status
+    showMessage('Public/Private toggle - API endpoint coming soon!', 'info');
+}
+
+function copyStory() {
+    const textarea = document.getElementById('story-text');
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        showMessage('Story copied to clipboard!', 'success');
+    } catch (err) {
+        console.error('Error copying story:', err);
+        showMessage('Failed to copy story', 'danger');
+    }
+}
+
+function exportStory(format) {
+    const storyId = {{ story.id }};
+    const url = '/api/stories/' + storyId + '/export/' + format + '/';
+    
+    // Create a temporary link to trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showMessage('Story exported as ' + format.toUpperCase() + '!', 'success');
+}
+
+function downloadStory() {
+    // Legacy function - now redirects to TXT export
+    exportStory('txt');
+}
+
+function showMessage(message, type) {
+    // Create and show a temporary alert
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alert.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alert);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %} 

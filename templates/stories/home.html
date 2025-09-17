@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - AI Story Generator{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">
+                    <i class="fas fa-magic"></i> AI Story Generator
+                </h1>
+                <p class="lead mb-4">
+                    Transform your ideas into captivating stories! Enter a few keywords and watch as AI weaves them into unique, engaging narratives.
+                </p>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'stories:generate' %}" class="btn btn-light btn-lg me-3">
+                        <i class="fas fa-pen-fancy"></i> Generate Story
+                    </a>
+                    <a href="{% url 'stories:my_stories' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-book"></i> My Stories
+                    </a>
+                {% else %}
+                    <a href="{% url 'stories:register' %}" class="btn btn-light btn-lg me-3">
+                        <i class="fas fa-user-plus"></i> Get Started
+                    </a>
+                    <a href="{% url 'stories:gallery' %}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-images"></i> View Gallery
+                    </a>
+                {% endif %}
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="fas fa-book-open" style="font-size: 8rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Start Section -->
+{% if not user.is_authenticated %}
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <h3 class="text-center mb-4">Try It Now!</h3>
+                        <form method="post" action="{% url 'stories:generate' %}" class="demo-form">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.keywords }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.genre }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.length }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.tone }}
+                                </div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <a href="{% url 'stories:register' %}">Register</a> to save and manage your stories
+                                </small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Features Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Why Choose Our Story Generator?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-bolt text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>Lightning Fast</h4>
+                    <p class="text-muted">Generate compelling stories in seconds, not hours. Perfect for writers, students, and creative minds.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-palette text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>Highly Customizable</h4>
+                    <p class="text-muted">Choose from multiple genres, tones, and lengths. Every story is tailored to your preferences.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-heart text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>Save Favorites</h4>
+                    <p class="text-muted">Keep track of your best stories, rate them, and build your personal collection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Stories Section -->
+{% if recent_stories %}
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Recent Stories</h2>
+            <a href="{% url 'stories:gallery' %}" class="btn btn-outline-primary">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div class="row g-4">
+            {% for story in recent_stories %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card story-card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-primary genre-badge">{{ story.get_genre_display }}</span>
+                            <small class="text-muted">{{ story.created_at|date:"M d" }}</small>
+                        </div>
+                        
+                        <h5 class="card-title">{{ story.title|truncatechars:50 }}</h5>
+                        <p class="card-text text-muted">{{ story.content|truncatechars:120 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user"></i> {{ story.user.username }}
+                            </small>
+                            <small class="text-muted">
+                                {{ story.word_count }} words
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Call to Action -->
+{% if not user.is_authenticated %}
+<section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+        <h2 class="mb-3">Ready to Start Your Story Journey?</h2>
+        <p class="lead mb-4">Join thousands of writers who use our AI to spark their creativity!</p>
+        <a href="{% url 'stories:register' %}" class="btn btn-light btn-lg">
+            <i class="fas fa-rocket"></i> Get Started Free
+        </a>
+    </div>
+</section>
+{% endif %}
+{% endblock %} 

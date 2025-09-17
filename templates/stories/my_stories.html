@@ -1,0 +1,655 @@
+{% extends 'base.html' %}
+
+{% block title %}My Stories - AI Story Generator{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-book text-primary"></i> My Stories</h1>
+        <div class="btn-group">
+            <a href="{% url 'stories:generate' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Generate New Story
+            </a>
+            
+            <!-- Bulk Actions Dropdown -->
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><h6 class="dropdown-header">Export All Stories</h6></li>
+                <li><a class="dropdown-item" href="#" onclick="exportCollection('txt')">
+                    <i class="fas fa-file-text"></i> All as TXT (ZIP)
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportCollection('pdf')">
+                    <i class="fas fa-file-pdf"></i> All as PDF (ZIP)
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportCollection('html')">
+                    <i class="fas fa-file-code"></i> All as HTML (ZIP)
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Export Selected</h6></li>
+                <li><a class="dropdown-item" href="#" onclick="toggleBulkMode()">
+                    <i class="fas fa-check-square"></i> Select Stories to Export
+                </a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Bulk Selection Mode -->
+    <div id="bulk-mode" class="alert alert-info d-none">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-info-circle"></i> 
+                <strong>Bulk Export Mode:</strong> Select stories to export, then choose a format.
+                <span id="selected-count" class="badge bg-primary ms-2">0 selected</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-success" onclick="exportSelected('txt')" id="export-txt-btn" disabled>
+                    <i class="fas fa-file-text"></i> TXT
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="exportSelected('pdf')" id="export-pdf-btn" disabled>
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button class="btn btn-sm btn-info" onclick="exportSelected('html')" id="export-html-btn" disabled>
+                    <i class="fas fa-file-code"></i> HTML
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="toggleBulkMode()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Search & Filter Controls -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-search"></i> Search & Filter Stories
+                </h6>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#advanced-search" aria-expanded="false">
+                    <i class="fas fa-sliders-h"></i> Advanced
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Quick Search Bar -->
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="search-input" 
+                               placeholder="Search stories by title, keywords, or content..."
+                               value="{{ search_query|default:'' }}" 
+                               onkeyup="performSearch()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="text-muted" id="results-count">{{ stories|length }} stories found</span>
+                </div>
+            </div>
+            
+            <!-- Quick Filters -->
+            <div class="row">
+                <div class="col-md-3">
+                    <select name="genre" class="form-select" id="genre-filter" onchange="applyFilters()">
+                        <option value="">All Genres</option>
+                        {% for value, display in genre_choices %}
+                            <option value="{{ value }}" {% if current_genre == value %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="length-filter" onchange="applyFilters()">
+                        <option value="">All Lengths</option>
+                        <option value="short">Short</option>
+                        <option value="medium">Medium</option>
+                        <option value="long">Long</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="sort-filter" onchange="applyFilters()">
+                        <option value="-created_at">Newest First</option>
+                        <option value="created_at">Oldest First</option>
+                        <option value="title">Title A-Z</option>
+                        <option value="-title">Title Z-A</option>
+                        <option value="-rating">Highest Rated</option>
+                        <option value="-word_count">Most Words</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="favoritesOnly" 
+                               {% if favorites_only %}checked{% endif %}
+                               onchange="applyFilters()">
+                        <label class="form-check-label" for="favoritesOnly">
+                            <i class="fas fa-heart text-danger"></i> Favorites Only
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Search (Collapsible) -->
+            <div class="collapse mt-3" id="advanced-search">
+                <div class="border-top pt-3">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">AI Generated</label>
+                            <select class="form-select" id="ai-filter" onchange="applyFilters()">
+                                <option value="">All Stories</option>
+                                <option value="ai">AI Generated Only</option>
+                                <option value="template">Template Based Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Rating</label>
+                            <select class="form-select" id="rating-filter" onchange="applyFilters()">
+                                <option value="">Any Rating</option>
+                                <option value="5">5 Stars Only</option>
+                                <option value="4+">4+ Stars</option>
+                                <option value="3+">3+ Stars</option>
+                                <option value="unrated">Unrated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="date-filter" onchange="applyFilters()">
+                                <option value="">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stories Grid -->
+    {% if stories %}
+        <div class="row g-4">
+            {% for story in stories %}
+                         <div class="col-md-6 col-lg-4">
+                 <div class="card story-card h-100 shadow-sm" data-story-id="{{ story.id }}">
+                     <!-- Bulk selection checkbox -->
+                     <div class="position-absolute top-0 start-0 p-2 bulk-checkbox d-none">
+                         <input type="checkbox" class="form-check-input story-checkbox" 
+                                value="{{ story.id }}" onchange="updateSelectedCount()">
+                     </div>
+                     
+                     <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-primary genre-badge">{{ story.get_genre_display }}</span>
+                            <div class="text-end">
+                                <small class="text-muted d-block">{{ story.created_at|date:"M d, Y" }}</small>
+                                {% if story.rating %}
+                                    <div class="text-warning">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= story.rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h5 class="card-title">{{ story.title|truncatechars:50 }}</h5>
+                        <p class="card-text text-muted">{{ story.content|truncatechars:120 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <span class="badge bg-secondary">{{ story.get_tone_display }}</span>
+                                {% if story.is_favorite %}
+                                    <i class="fas fa-heart text-danger ms-2"></i>
+                                {% endif %}
+                                {% if story.is_public %}
+                                    <i class="fas fa-globe text-info ms-2" title="Public"></i>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ story.word_count }} words</small>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <a href="{% url 'stories:story_detail' story.id %}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    data-story-id="{{ story.id }}"
+                                    onclick="toggleFavorite(this.dataset.storyId, this)">
+                                <i class="{% if story.is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" 
+                                    data-story-id="{{ story.id }}"
+                                    onclick="togglePublic(this.dataset.storyId, this)">
+                                <i class="fas fa-{% if story.is_public %}eye-slash{% else %}globe{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination could go here if needed -->
+        
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-book-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            <h3 class="mt-3 text-muted">No Stories Yet</h3>
+            <p class="text-muted">
+                {% if favorites_only %}
+                    You haven't favorited any stories yet.
+                {% elif current_genre %}
+                    No stories found for the selected genre.
+                {% else %}
+                    Start creating your story collection!
+                {% endif %}
+            </p>
+            <a href="{% url 'stories:generate' %}" class="btn btn-primary">
+                <i class="fas fa-magic"></i> Generate Your First Story
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFavorites() {
+    const checkbox = document.getElementById('favoritesOnly');
+    const url = new URL(window.location);
+    
+    if (checkbox.checked) {
+        url.searchParams.set('favorites', 'true');
+    } else {
+        url.searchParams.delete('favorites');
+    }
+    
+    window.location.href = url.toString();
+}
+
+async function toggleFavorite(storyId, button) {
+    try {
+        const response = await fetch(`/api/stories/${storyId}/favorite/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || 
+                              document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const icon = button.querySelector('i');
+            if (data.is_favorite) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+        }
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+    }
+}
+
+async function togglePublic(storyId, button) {
+    // Note: This would need an API endpoint to toggle public status
+    // For now, just show an alert
+    alert('Public/Private toggle - API endpoint needed');
+}
+
+// Phase 2 - Advanced Search functionality
+let searchTimeout;
+let allStories = [];
+
+// Initialize search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Store all stories for client-side filtering
+    allStories = Array.from(document.querySelectorAll('.story-card')).map(card => {
+        const storyId = card.dataset.storyId;
+        const titleElement = card.querySelector('.card-title');
+        const contentElement = card.querySelector('.card-text');
+        const genreElement = card.querySelector('.genre-badge');
+        const lengthElement = card.querySelector('.badge.bg-secondary');
+        const ratingElement = card.querySelector('.text-warning');
+        const dateElement = card.querySelector('.text-muted');
+        const aiElement = card.querySelector('[title]');
+        
+        return {
+            id: storyId,
+            element: card,
+            title: titleElement ? titleElement.textContent.toLowerCase() : '',
+            content: contentElement ? contentElement.textContent.toLowerCase() : '',
+            genre: genreElement ? genreElement.textContent.toLowerCase() : '',
+            length: lengthElement ? lengthElement.textContent.toLowerCase() : '',
+            rating: ratingElement ? ratingElement.querySelectorAll('.fas').length : 0,
+            date: dateElement ? new Date(card.querySelector('.text-muted').textContent) : new Date(),
+            isAI: card.querySelector('[data-ai="true"]') !== null,
+            isFavorite: card.querySelector('.fa-heart.fas') !== null,
+            keywords: card.dataset.keywords || ''
+        };
+    });
+});
+
+function performSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        applyFilters();
+    }, 300); // Debounce search
+}
+
+function applyFilters() {
+    const searchQuery = document.getElementById('search-input').value.toLowerCase();
+    const genreFilter = document.getElementById('genre-filter').value;
+    const lengthFilter = document.getElementById('length-filter').value;
+    const sortFilter = document.getElementById('sort-filter').value;
+    const favoritesOnly = document.getElementById('favoritesOnly').checked;
+    const aiFilter = document.getElementById('ai-filter').value;
+    const ratingFilter = document.getElementById('rating-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    
+    let filteredStories = allStories.filter(story => {
+        // Text search
+        if (searchQuery && !story.title.includes(searchQuery) && 
+            !story.content.includes(searchQuery) && 
+            !story.keywords.toLowerCase().includes(searchQuery)) {
+            return false;
+        }
+        
+        // Genre filter
+        if (genreFilter && !story.genre.includes(genreFilter.toLowerCase())) {
+            return false;
+        }
+        
+        // Length filter
+        if (lengthFilter && !story.length.includes(lengthFilter.toLowerCase())) {
+            return false;
+        }
+        
+        // Favorites filter
+        if (favoritesOnly && !story.isFavorite) {
+            return false;
+        }
+        
+        // AI filter
+        if (aiFilter === 'ai' && !story.isAI) {
+            return false;
+        }
+        if (aiFilter === 'template' && story.isAI) {
+            return false;
+        }
+        
+        // Rating filter
+        if (ratingFilter) {
+            if (ratingFilter === 'unrated' && story.rating > 0) {
+                return false;
+            }
+            if (ratingFilter === '5' && story.rating !== 5) {
+                return false;
+            }
+            if (ratingFilter === '4+' && story.rating < 4) {
+                return false;
+            }
+            if (ratingFilter === '3+' && story.rating < 3) {
+                return false;
+            }
+        }
+        
+        // Date filter
+        if (dateFilter) {
+            const now = new Date();
+            const storyDate = story.date;
+            
+            switch (dateFilter) {
+                case 'today':
+                    if (storyDate.toDateString() !== now.toDateString()) return false;
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    if (storyDate < weekAgo) return false;
+                    break;
+                case 'month':
+                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    if (storyDate < monthAgo) return false;
+                    break;
+                case 'year':
+                    if (storyDate.getFullYear() !== now.getFullYear()) return false;
+                    break;
+            }
+        }
+        
+        return true;
+    });
+    
+    // Sort results
+    filteredStories.sort((a, b) => {
+        switch (sortFilter) {
+            case 'title':
+                return a.title.localeCompare(b.title);
+            case '-title':
+                return b.title.localeCompare(a.title);
+            case 'created_at':
+                return a.date - b.date;
+            case '-created_at':
+                return b.date - a.date;
+            case '-rating':
+                return b.rating - a.rating;
+            case '-word_count':
+                // Would need word count data
+                return 0;
+            default:
+                return b.date - a.date;
+        }
+    });
+    
+    // Show/hide stories
+    allStories.forEach(story => {
+        if (filteredStories.includes(story)) {
+            story.element.parentElement.style.display = 'block';
+        } else {
+            story.element.parentElement.style.display = 'none';
+        }
+    });
+    
+    // Update results count
+    const resultsCount = document.getElementById('results-count');
+    if (resultsCount) {
+        resultsCount.textContent = `${filteredStories.length} stories found`;
+    }
+    
+    // Show no results message if needed
+    showNoResultsMessage(filteredStories.length === 0);
+}
+
+function clearSearch() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('genre-filter').value = '';
+    document.getElementById('length-filter').value = '';
+    document.getElementById('sort-filter').value = '-created_at';
+    document.getElementById('favoritesOnly').checked = false;
+    
+    // Clear advanced filters if they exist
+    const aiFilter = document.getElementById('ai-filter');
+    const ratingFilter = document.getElementById('rating-filter');
+    const dateFilter = document.getElementById('date-filter');
+    
+    if (aiFilter) aiFilter.value = '';
+    if (ratingFilter) ratingFilter.value = '';
+    if (dateFilter) dateFilter.value = '';
+    
+    applyFilters();
+}
+
+function showNoResultsMessage(show) {
+    let noResultsDiv = document.getElementById('no-results-message');
+    
+    if (show && !noResultsDiv) {
+        noResultsDiv = document.createElement('div');
+        noResultsDiv.id = 'no-results-message';
+        noResultsDiv.className = 'col-12';
+        noResultsDiv.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-search text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                <h3 class="mt-3 text-muted">No Stories Found</h3>
+                <p class="text-muted">Try adjusting your search criteria or filters.</p>
+                <button class="btn btn-outline-primary" onclick="clearSearch()">
+                    <i class="fas fa-times"></i> Clear All Filters
+                </button>
+            </div>
+        `;
+        
+        const storiesContainer = document.querySelector('.row.g-4');
+        if (storiesContainer) {
+            storiesContainer.appendChild(noResultsDiv);
+        }
+    } else if (!show && noResultsDiv) {
+        noResultsDiv.remove();
+    }
+}
+
+function toggleFavorites() {
+    applyFilters();
+}
+
+// Phase 2 - Export functionality
+function exportCollection(format) {
+    const url = `/api/export/collection/?format=${format}`;
+    
+    // Create a temporary link to trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Show loading message
+    showMessage(`Preparing ${format.toUpperCase()} export... This may take a moment.`, 'info');
+}
+
+let bulkModeActive = false;
+let selectedStories = new Set();
+
+function toggleBulkMode() {
+    bulkModeActive = !bulkModeActive;
+    const bulkAlert = document.getElementById('bulk-mode');
+    const checkboxes = document.querySelectorAll('.bulk-checkbox');
+    
+    if (bulkModeActive) {
+        bulkAlert.classList.remove('d-none');
+        checkboxes.forEach(cb => cb.classList.remove('d-none'));
+    } else {
+        bulkAlert.classList.add('d-none');
+        checkboxes.forEach(cb => cb.classList.add('d-none'));
+        // Clear selections
+        selectedStories.clear();
+        document.querySelectorAll('.story-checkbox').forEach(cb => cb.checked = false);
+        updateSelectedCount();
+    }
+}
+
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.story-checkbox:checked');
+    selectedStories.clear();
+    
+    checkedBoxes.forEach(cb => selectedStories.add(cb.value));
+    
+    const count = selectedStories.size;
+    const countElement = document.getElementById('selected-count');
+    const exportButtons = ['export-txt-btn', 'export-pdf-btn', 'export-html-btn'];
+    
+    countElement.textContent = `${count} selected`;
+    
+    exportButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = count === 0;
+        }
+    });
+}
+
+async function exportSelected(format) {
+    if (selectedStories.size === 0) {
+        showMessage('Please select at least one story to export.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/export/multiple/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || 
+                              document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                story_ids: Array.from(selectedStories),
+                format: format
+            })
+        });
+        
+        if (response.ok) {
+            // Create blob and download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `selected_stories_${format}_${new Date().toISOString().slice(0,10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showMessage(`${selectedStories.size} stories exported as ${format.toUpperCase()}!`, 'success');
+            
+            // Exit bulk mode
+            toggleBulkMode();
+        } else {
+            const errorData = await response.json();
+            showMessage(`Export failed: ${errorData.error}`, 'danger');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        showMessage('Export failed. Please try again.', 'danger');
+    }
+}
+
+function showMessage(message, type) {
+    // Create and show a temporary alert
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alert.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alert);
+    
+    // Auto-remove after 5 seconds for info messages, 3 seconds for others
+    const timeout = type === 'info' ? 5000 : 3000;
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    }, timeout);
+}
+</script>
+{% endblock %} 

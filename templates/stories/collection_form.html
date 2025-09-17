@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - AI Story Generator{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-folder-plus"></i> {{ title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                <i class="fas fa-tag"></i> Collection Name
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                                <div class="form-text">{{ form.name.help_text }}</div>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="fas fa-info-circle"></i> Description (Optional)
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                                <div class="form-text">{{ form.description.help_text }}</div>
+                            {% endif %}
+                            {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.color.id_for_label }}" class="form-label">
+                                        <i class="fas fa-palette"></i> Color Theme
+                                    </label>
+                                    {{ form.color }}
+                                    {% if form.color.help_text %}
+                                        <div class="form-text">{{ form.color.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.color.errors %}
+                                        <div class="text-danger">{{ form.color.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.icon.id_for_label }}" class="form-label">
+                                        <i class="fas fa-icons"></i> Icon
+                                    </label>
+                                    {{ form.icon }}
+                                    {% if form.icon.help_text %}
+                                        <div class="form-text">{{ form.icon.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.icon.errors %}
+                                        <div class="text-danger">{{ form.icon.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview Section -->
+                        <div class="mb-4">
+                            <label class="form-label">Preview</label>
+                            <div class="border rounded p-3 bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div id="preview-icon" class="me-3" style="
+                                        width: 50px; 
+                                        height: 50px; 
+                                        border-radius: 50%; 
+                                        background: #6f42c1; 
+                                        display: flex; 
+                                        align-items: center; 
+                                        justify-content: center; 
+                                        color: white;
+                                        font-size: 1.5rem;
+                                    ">
+                                        <i class="fas fa-folder"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0" id="preview-name">Collection Name</h6>
+                                        <small class="text-muted" id="preview-description">Collection description</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-save"></i> 
+                                {% if collection %}Update{% else %}Create{% endif %} Collection
+                            </button>
+                            <a href="{% url 'stories:collections' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+    const descInput = document.getElementById('{{ form.description.id_for_label }}');
+    const colorInput = document.getElementById('{{ form.color.id_for_label }}');
+    const iconSelect = document.getElementById('{{ form.icon.id_for_label }}');
+    
+    const previewName = document.getElementById('preview-name');
+    const previewDesc = document.getElementById('preview-description');
+    const previewIcon = document.getElementById('preview-icon');
+    const previewIconElement = previewIcon.querySelector('i');
+    
+    function updatePreview() {
+        // Update name
+        previewName.textContent = nameInput.value || 'Collection Name';
+        
+        // Update description
+        previewDesc.textContent = descInput.value || 'Collection description';
+        
+        // Update color
+        if (colorInput.value) {
+            previewIcon.style.background = colorInput.value;
+        }
+        
+        // Update icon
+        if (iconSelect.value) {
+            previewIconElement.className = iconSelect.value;
+        }
+    }
+    
+    // Initial preview update
+    updatePreview();
+    
+    // Add event listeners
+    nameInput.addEventListener('input', updatePreview);
+    descInput.addEventListener('input', updatePreview);
+    colorInput.addEventListener('input', updatePreview);
+    iconSelect.addEventListener('change', updatePreview);
+});
+</script>
+{% endblock %} 
