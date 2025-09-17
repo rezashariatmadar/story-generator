@@ -8,7 +8,8 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     
-    # User preferences
+    # User bio and preferences
+    bio = models.TextField(max_length=500, blank=True, help_text="Tell us about yourself")
     favorite_genre = models.CharField(max_length=20, blank=True, 
                                     choices=[
                                         ('fantasy', 'Fantasy'),
@@ -20,6 +21,17 @@ class UserProfile(models.Model):
                                         ('drama', 'Drama'),
                                         ('comedy', 'Comedy'),
                                     ])
+    preferred_genre = models.CharField(max_length=20, blank=True, 
+                                     choices=[
+                                         ('fantasy', 'Fantasy'),
+                                         ('sci_fi', 'Science Fiction'),
+                                         ('romance', 'Romance'),
+                                         ('horror', 'Horror'),
+                                         ('mystery', 'Mystery'),
+                                         ('adventure', 'Adventure'),
+                                         ('drama', 'Drama'),
+                                         ('comedy', 'Comedy'),
+                                     ])
     preferred_length = models.CharField(max_length=10, blank=True,
                                       choices=[
                                           ('short', 'Short'),
@@ -47,6 +59,16 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return f"{self.user.username}'s Profile"
+    
+    @property
+    def total_stories(self):
+        """Alias for stories_generated for backward compatibility"""
+        return self.stories_generated
+    
+    def get_absolute_url(self):
+        """Get absolute URL for this profile"""
+        from django.urls import reverse
+        return reverse('users:public_profile', kwargs={'username': self.user.username})
     
     def update_stats(self):
         """Update user statistics based on their stories"""

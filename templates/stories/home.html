@@ -23,7 +23,7 @@
                         <i class="fas fa-book"></i> My Stories
                     </a>
                 {% else %}
-                    <a href="{% url 'stories:register' %}" class="btn btn-light btn-lg me-3">
+                    <a href="{% url 'users:register' %}" class="btn btn-light btn-lg me-3">
                         <i class="fas fa-user-plus"></i> Get Started
                     </a>
                     <a href="{% url 'stories:gallery' %}" class="btn btn-outline-light btn-lg">
@@ -68,7 +68,7 @@
                             </div>
                             <div class="text-center mt-3">
                                 <small class="text-muted">
-                                    <a href="{% url 'stories:register' %}">Register</a> to save and manage your stories
+                                    <a href="{% url 'users:register' %}">Register</a> to save and manage your stories
                                 </small>
                             </div>
                         </form>
@@ -163,7 +163,7 @@
     <div class="container text-center">
         <h2 class="mb-3">Ready to Start Your Story Journey?</h2>
         <p class="lead mb-4">Join thousands of writers who use our AI to spark their creativity!</p>
-        <a href="{% url 'stories:register' %}" class="btn btn-light btn-lg">
+        <a href="{% url 'users:register' %}" class="btn btn-light btn-lg">
             <i class="fas fa-rocket"></i> Get Started Free
         </a>
     </div>

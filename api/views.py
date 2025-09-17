@@ -2,14 +2,14 @@ import time
 import logging
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.db.models import Q
 
 from stories.models import Story
-from stories.ai_service import ai_story_generator
+from stories.puter_ai_service import puter_ai_generator
 from users.models import UserProfile
 from .serializers import (
     StorySerializer, StoryCreateSerializer, StoryListSerializer,
@@ -36,8 +36,16 @@ def generate_story(request):
         tone = serializer.validated_data['tone']
         
         try:
-            # Generate story using AI service (with automatic fallback)
-            story_result = ai_story_generator.generate_story(keywords, genre, length, tone)
+            # Check if we should force template generation (from frontend fallback)
+            force_template = request.META.get('HTTP_X_FORCE_TEMPLATE') == 'true'
+            
+            if force_template:
+                # Force template generation
+                story_result = puter_ai_generator._generate_simple(keywords, genre, length, tone)
+            else:
+                # Generate story using AI service (with automatic fallback)
+                story_result = puter_ai_generator.generate_story(keywords, genre, length, tone)
+            
             generation_time = time.time() - start_time
             
             # Create story object
@@ -178,9 +186,9 @@ def public_stories(request):
 def ai_status(request):
     """Check if AI service is available"""
     return Response({
-        'ai_available': ai_story_generator.is_available(),
-        'model': 'gemini-2.5-flash' if ai_story_generator.is_available() else 'template-based',
-        'status': 'ready' if ai_story_generator.is_available() else 'fallback'
+        'ai_available': puter_ai_generator.is_available(),
+        'model': 'claude-sonnet-4' if puter_ai_generator.is_available() else 'template-based',
+        'status': 'ready' if puter_ai_generator.is_available() else 'fallback'
     })
 
 # Phase 2 - Export functionality

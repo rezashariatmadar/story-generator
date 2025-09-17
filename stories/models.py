@@ -52,7 +52,7 @@ class Story(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False, help_text="Make story public in gallery")
     is_favorite = models.BooleanField(default=False, help_text="User marked as favorite")
-    rating = models.IntegerField(null=True, blank=True, help_text="User rating 1-5")
+    rating = models.IntegerField(default=0, help_text="User rating 0-5 (0=unrated)")
     
     # AI generation metadata
     generation_time = models.FloatField(null=True, blank=True, help_text="Time taken to generate in seconds")
@@ -62,7 +62,11 @@ class Story(models.Model):
         ordering = ['-created_at']
         
     def __str__(self):
-        return f"{self.title or 'Untitled'} by {self.user.username}"
+        return f"Story by {self.user.username} - {self.keywords}"
+    
+    def get_absolute_url(self):
+        """Get the absolute URL for this story"""
+        return f'/stories/{self.id}/'
         
     def save(self, *args, **kwargs):
         # Auto-generate title if not provided
@@ -95,7 +99,7 @@ class StoryCollection(models.Model):
         unique_together = ['user', 'name']
     
     def __str__(self):
-        return f"{self.name} ({self.user.username})"
+        return f"{self.user.username} - {self.name}"
     
     @property
     def story_count(self):

@@ -5,7 +5,7 @@ app_name = 'api'
 
 urlpatterns = [
     # Story generation and management
-    path('generate/', views.generate_story, name='generate_story'),
+    path('stories/generate/', views.generate_story, name='generate_story'),
     path('stories/', views.StoryListView.as_view(), name='story_list'),
     path('stories/<int:pk>/', views.StoryDetailView.as_view(), name='story_detail'),
     path('stories/<int:story_id>/rate/', views.rate_story, name='rate_story'),

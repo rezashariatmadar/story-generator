@@ -31,15 +31,7 @@ class StoryGenerationForm(forms.Form):
         initial='happy'
     )
 
-class UserProfileForm(forms.ModelForm):
-    class Meta:
-        model = UserProfile
-        fields = ['favorite_genre', 'preferred_length', 'preferred_tone']
-        widgets = {
-            'favorite_genre': forms.Select(attrs={'class': 'form-control'}),
-            'preferred_length': forms.Select(attrs={'class': 'form-control'}),
-            'preferred_tone': forms.Select(attrs={'class': 'form-control'}),
-        }
+# UserProfileForm has been moved to users.forms
 
 class StoryCollectionForm(forms.ModelForm):
     class Meta:

@@ -7,7 +7,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('generate/', views.generate_story_view, name='generate'),
     path('my-stories/', views.my_stories, name='my_stories'),
-    path('story/<int:story_id>/', views.story_detail, name='story_detail'),
+    path('stories/<int:pk>/', views.story_detail, name='story_detail'),
     path('gallery/', views.public_gallery, name='gallery'),
     
     # Phase 2 - Collections
@@ -18,7 +18,6 @@ urlpatterns = [
     path('collections/<int:collection_id>/delete/', views.delete_collection, name='delete_collection'),
     path('move-to-collection/', views.move_to_collection, name='move_to_collection'),
     
-    # User management
-    path('register/', views.register, name='register'),
-    path('profile/', views.profile, name='profile'),
+    # Public gallery and story list  
+    path('stories/', views.public_gallery, name='story_list'),
 ] 

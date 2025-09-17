@@ -1,7 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
@@ -9,7 +7,7 @@ import json
 
 from .models import Story
 from users.models import UserProfile
-from .forms import StoryGenerationForm, UserProfileForm
+from .forms import StoryGenerationForm
 from .models import StoryCollection
 from .forms import StoryCollectionForm
 
@@ -163,16 +161,16 @@ def my_stories(request):
     return render(request, 'stories/my_stories.html', context)
 
 @login_required
-def story_detail(request, story_id):
+def story_detail(request, pk):
     """Detailed view of a single story"""
-    story = get_object_or_404(Story, id=story_id, user=request.user)
+    story = get_object_or_404(Story, id=pk, user=request.user)
     return render(request, 'stories/story_detail.html', {'story': story})
 
 def public_gallery(request):
     """Public gallery of stories"""
     stories = Story.objects.filter(is_public=True).order_by('-created_at')
     
-    # Filter by genre
+    # Genre filtering
     genre_filter = request.GET.get('genre')
     if genre_filter:
         stories = stories.filter(genre=genre_filter)
@@ -183,44 +181,6 @@ def public_gallery(request):
         'current_genre': genre_filter,
     }
     return render(request, 'stories/gallery.html', context)
-
-def register(request):
-    """User registration"""
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Account created successfully!')
-            return redirect('stories:home')
-    else:
-        form = UserCreationForm()
-    
-    return render(request, 'registration/register.html', {'form': form})
-
-@login_required
-def profile(request):
-    """User profile page"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
-    
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('stories:profile')
-    else:
-        form = UserProfileForm(instance=profile)
-    
-    # Update stats
-    profile.update_stats()
-    
-    context = {
-        'form': form,
-        'profile': profile,
-        'recent_stories': Story.objects.filter(user=request.user).order_by('-created_at')[:5],
-    }
-    return render(request, 'stories/profile.html', context)
 
 @login_required
 def collections(request):

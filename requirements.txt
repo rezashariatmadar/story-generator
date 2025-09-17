@@ -1,7 +1,7 @@
 Django==4.2.20
 djangorestframework==3.16.1
 python-decouple==3.8
-google-genai
+# google-genai>=1.0.0  # Replaced with Puter.js for free Claude AI access
 
 # Phase 2 - Export functionality
 reportlab==4.4.3

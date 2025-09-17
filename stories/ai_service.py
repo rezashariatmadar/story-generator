@@ -20,10 +20,11 @@ class AIStoryGenerator:
         """Initialize the Gemini client if API key is available"""
         if self.api_key and self.api_key != 'your-gemini-api-key-here':
             try:
-                # Initialize client with explicit API key
+                # Set environment variable and let client pick it up automatically
                 import os
                 os.environ['GEMINI_API_KEY'] = self.api_key
-                self.client = genai.Client(api_key=self.api_key)
+                # Initialize client without explicit API key - it will pick up from environment
+                self.client = genai.Client()
                 logger.info("Gemini AI client initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini client: {e}")
@@ -72,11 +73,11 @@ class AIStoryGenerator:
             )
             
             if response and response.text:
-                return {
-                    'content': response.text.strip(),
-                    'ai_model_used': 'gemini-2.5-flash',
-                    'generation_method': 'ai'
-                }
+                                    return {
+                        'content': response.text.strip(),
+                        'ai_model_used': 'gemini-2.5-flash',
+                        'generation_method': 'ai'
+                    }
             else:
                 logger.warning("Empty response from Gemini API, falling back to simple generation")
                 return self._generate_simple(keywords, genre, length, tone)

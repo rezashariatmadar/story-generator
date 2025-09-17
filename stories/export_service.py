@@ -344,4 +344,17 @@ class StoryExportService:
         }
 
 # Global instance for easy importing
-export_service = StoryExportService() 
+export_service = StoryExportService()
+
+# Standalone functions for compatibility
+def export_story_txt(story):
+    """Export story as TXT - standalone function"""
+    return export_service.export_story_txt(story)
+
+def export_story_html(story):
+    """Export story as HTML - standalone function"""
+    return export_service.export_story_html(story)
+
+def export_story_pdf(story):
+    """Export story as PDF - standalone function"""
+    return export_service.export_story_pdf(story) 

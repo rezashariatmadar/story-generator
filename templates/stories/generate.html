@@ -46,162 +46,186 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="text-center mb-5">
-                <h1><i class="fas fa-magic text-primary"></i> Generate Your Story</h1>
-                <p class="lead text-muted">Enter your ideas and watch them transform into a captivating narrative</p>
-                
-                <!-- AI Status Indicator -->
-                <div id="ai-status" class="alert alert-info d-none mb-3">
-                    <i class="fas fa-robot"></i> <strong>AI Powered:</strong> Your stories will be generated using Google Gemini AI
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="fas fa-magic"></i> Generate Your Story</h2>
                 </div>
-                <div id="fallback-status" class="alert alert-warning d-none mb-3">
-                    <i class="fas fa-cogs"></i> <strong>Template Mode:</strong> Using smart templates (AI not configured)
-                </div>
-            </div>
-            
-            <!-- Generation Form -->
-            <div class="generation-form mb-5">
-                <form id="story-form">
-                    {% csrf_token %}
-                    <div class="row g-4">
-                        <div class="col-12">
-                            <label for="{{ form.keywords.id_for_label }}" class="form-label fw-bold">
-                                <i class="fas fa-lightbulb text-warning"></i> Story Keywords
-                            </label>
-                            {{ form.keywords }}
-                            <div class="form-text">{{ form.keywords.help_text }}</div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label for="{{ form.genre.id_for_label }}" class="form-label fw-bold">
-                                <i class="fas fa-tag text-info"></i> Genre
-                            </label>
-                            {{ form.genre }}
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label for="{{ form.length.id_for_label }}" class="form-label fw-bold">
-                                <i class="fas fa-ruler text-success"></i> Length
-                            </label>
-                            {{ form.length }}
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label for="{{ form.tone.id_for_label }}" class="form-label fw-bold">
-                                <i class="fas fa-palette text-danger"></i> Tone
-                            </label>
-                            {{ form.tone }}
+                <div class="card-body">
+                    <!-- AI Status Indicator -->
+                    <div id="ai-status" class="alert alert-info mb-4" role="alert">
+                        <i class="fas fa-robot"></i> 
+                        <span id="ai-status-text">Checking AI status...</span>
+                        <div class="spinner-border spinner-border-sm ms-2" role="status" id="ai-status-spinner">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
-                    
-                    <div class="text-center mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg px-5" id="generate-btn">
-                            <i class="fas fa-wand-magic-sparkles"></i> Generate Story
-                        </button>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Story Result -->
-            <div id="story-result" class="story-result">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h2 id="story-title" class="text-primary"></h2>
-                    <div class="story-meta">
-                        <span class="badge bg-primary" id="story-genre"></span>
-                        <span class="badge bg-success" id="story-length"></span>
-                        <span class="badge bg-warning" id="story-tone"></span>
-                    </div>
-                </div>
-                
-                <div id="story-content" class="story-text mb-3" style="line-height: 1.8; font-size: 1.1rem;"></div>
-                
-                <div class="story-actions">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <label class="me-2">Rate this story:</label>
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check" name="rating" id="rating1" value="1">
-                                    <label class="btn btn-outline-warning btn-sm" for="rating1">1⭐</label>
-                                    
-                                    <input type="radio" class="btn-check" name="rating" id="rating2" value="2">
-                                    <label class="btn btn-outline-warning btn-sm" for="rating2">2⭐</label>
-                                    
-                                    <input type="radio" class="btn-check" name="rating" id="rating3" value="3">
-                                    <label class="btn btn-outline-warning btn-sm" for="rating3">3⭐</label>
-                                    
-                                    <input type="radio" class="btn-check" name="rating" id="rating4" value="4">
-                                    <label class="btn btn-outline-warning btn-sm" for="rating4">4⭐</label>
-                                    
-                                    <input type="radio" class="btn-check" name="rating" id="rating5" value="5">
-                                    <label class="btn btn-outline-warning btn-sm" for="rating5">5⭐</label>
-                                </div>
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+
+                    <form method="post" id="story-form">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.keywords.id_for_label }}" class="form-label">
+                                    <i class="fas fa-tags"></i> Keywords
+                                </label>
+                                {{ form.keywords }}
+                                <div class="form-text">Enter keywords separated by commas (e.g., dragon, castle, magic)</div>
                             </div>
                         </div>
-                        
-                        <div class="col-md-6 text-end">
-                            <button class="btn btn-outline-danger btn-sm" id="favorite-btn">
-                                <i class="far fa-heart"></i> Add to Favorites
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.genre.id_for_label }}" class="form-label">
+                                    <i class="fas fa-book"></i> Genre
+                                </label>
+                                {{ form.genre }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.length.id_for_label }}" class="form-label">
+                                    <i class="fas fa-ruler"></i> Length
+                                </label>
+                                {{ form.length }}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.tone.id_for_label }}" class="form-label">
+                                    <i class="fas fa-palette"></i> Tone
+                                </label>
+                                {{ form.tone }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generate-btn">
+                                <i class="fas fa-magic"></i> Generate Story with AI
                             </button>
-                            <button class="btn btn-outline-primary btn-sm" id="share-btn">
-                                <i class="fas fa-share"></i> Make Public
+                            <button type="button" class="btn btn-outline-primary" id="template-btn">
+                                <i class="fas fa-scroll"></i> Quick Template Story
                             </button>
                         </div>
-                    </div>
-                    
-                    <div class="mt-3 text-center">
-                        <small class="text-muted">
-                            <span id="ai-indicator" class="badge bg-success me-2 d-none">
-                                <i class="fas fa-robot"></i> AI Generated
-                            </span>
-                            <span id="template-indicator" class="badge bg-secondary me-2 d-none">
-                                <i class="fas fa-cogs"></i> Template
-                            </span>
-                            Generation time: <span id="generation-time"></span>s | 
-                            Word count: <span id="word-count"></span> words
-                        </small>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loading-overlay">
-    <div class="text-center text-white">
-        <div class="spinner-border spinner text-light mb-3" role="status"></div>
-        <h4>Generating your story...</h4>
-        <p>This may take a few seconds</p>
+<!-- Success Modal for Generated Story -->
+<div class="modal fade" id="storyModal" tabindex="-1" aria-labelledby="storyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="storyModalLabel">Your Generated Story</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="story-content">
+                <!-- Story content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <a href="{% url 'stories:my_stories' %}" class="btn btn-primary">View All Stories</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Generate Another</button>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('story-form');
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const storyResult = document.getElementById('story-result');
-    let currentStoryId = null;
+    const generateBtn = document.getElementById('generate-btn');
+    const aiStatusElement = document.getElementById('ai-status');
+    const aiStatusText = document.getElementById('ai-status-text');
+    const aiStatusSpinner = document.getElementById('ai-status-spinner');
     
-    // Check AI availability on page load
-    checkAIAvailability();
+    // Check AI status on page load
+    checkAIStatus();
+    
+    async function checkAIStatus() {
+        try {
+            const response = await fetch('/api/ai-status/');
+            const data = await response.json();
+            
+            aiStatusSpinner.style.display = 'none';
+            
+            if (data.ai_available) {
+                aiStatusElement.className = 'alert alert-success mb-4';
+                aiStatusText.innerHTML = '<strong>🤖 Claude AI Powered</strong> - Enhanced story generation available!';
+            } else {
+                aiStatusElement.className = 'alert alert-warning mb-4';
+                aiStatusText.innerHTML = '<strong>📝 Template Mode</strong> - Basic story generation available';
+            }
+        } catch (error) {
+            aiStatusSpinner.style.display = 'none';
+            aiStatusElement.className = 'alert alert-warning mb-4';
+            aiStatusText.innerHTML = '<strong>📝 Template Mode</strong> - Basic story generation available';
+        }
+    }
+    
+    // Handle template generation button
+    const templateBtn = document.getElementById('template-btn');
+    templateBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        await generateStoryWithTemplate();
+    });
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        // Show loading
-        loadingOverlay.style.display = 'flex';
-        
-        // Get form data
-        const formData = new FormData(form);
+        await generateStoryWithAI();
+    });
+    
+    async function generateStoryWithTemplate() {
+        // Show loading state
+        templateBtn.disabled = true;
+        generateBtn.disabled = true;
+        templateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
         
         try {
-            const response = await fetch('/api/generate/', {
+            const formData = new FormData(form);
+            const response = await fetch('/api/stories/generate/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Force-Template': 'true'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showStory(data);
+            } else {
+                throw new Error(data.error || 'Generation failed');
+            }
+        } catch (error) {
+            alert('Error generating story: ' + error.message);
+        } finally {
+            // Reset buttons
+            templateBtn.disabled = false;
+            generateBtn.disabled = false;
+            templateBtn.innerHTML = '<i class="fas fa-scroll"></i> Quick Template Story';
+        }
+    }
+    
+    async function generateStoryWithAI() {
+        // Show loading state
+        generateBtn.disabled = true;
+        templateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch('/api/stories/generate/', {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -212,169 +236,173 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (response.ok) {
-                // Display story
-                displayStory(data);
-                currentStoryId = data.id;
+                // Check if this is a Puter Claude generation marker
+                if (data.content && data.content.startsWith('PUTER_CLAUDE_GENERATION||')) {
+                    await handleClaudeGeneration(data);
+                } else {
+                    // Regular template generation
+                    showStory(data);
+                }
             } else {
-                alert('Error generating story: ' + (data.detail || 'Unknown error'));
+                throw new Error(data.error || 'Generation failed');
             }
         } catch (error) {
             alert('Error generating story: ' + error.message);
         } finally {
-            loadingOverlay.style.display = 'none';
+            // Reset buttons
+            generateBtn.disabled = false;
+            templateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Story with AI';
         }
-    });
-    
-    function displayStory(story) {
-        document.getElementById('story-title').textContent = story.title || 'Generated Story';
-        document.getElementById('story-content').textContent = story.content;
-        document.getElementById('story-genre').textContent = story.genre;
-        document.getElementById('story-length').textContent = story.length;
-        document.getElementById('story-tone').textContent = story.tone;
-        document.getElementById('generation-time').textContent = story.generation_time.toFixed(2);
-        document.getElementById('word-count').textContent = story.word_count;
-        
-        // Show generation method indicator
-        const aiIndicator = document.getElementById('ai-indicator');
-        const templateIndicator = document.getElementById('template-indicator');
-        
-        if (story.ai_powered) {
-            aiIndicator.classList.remove('d-none');
-            templateIndicator.classList.add('d-none');
-        } else {
-            aiIndicator.classList.add('d-none');
-            templateIndicator.classList.remove('d-none');
-        }
-        
-        // Show result
-        storyResult.style.display = 'block';
-        storyResult.scrollIntoView({ behavior: 'smooth' });
     }
     
-    async function checkAIAvailability() {
+    async function handleClaudeGeneration(storyData) {
         try {
-            // Simple test request to check if AI is available
-            const response = await fetch('/api/ai-status/', {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
+            // Extract the prompt from the marker
+            const prompt = storyData.content.split('PUTER_CLAUDE_GENERATION||')[1];
+            
+            // Show Claude generation loading
+            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Authenticating with Claude AI...';
+            
+            // Check if Puter is available and try to authenticate
+            if (typeof puter === 'undefined') {
+                throw new Error('Puter.js not loaded');
+            }
+            
+            // Try to authenticate first (this might show a popup)
+            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Connecting to Claude AI...';
+            
+            // Generate with Claude using Puter.js
+            const claudeResponse = await puter.ai.chat(prompt, {
+                model: 'claude-sonnet-4'
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                const aiStatus = document.getElementById('ai-status');
-                const fallbackStatus = document.getElementById('fallback-status');
-                
-                if (data.ai_available) {
-                    aiStatus.classList.remove('d-none');
-                    fallbackStatus.classList.add('d-none');
-                } else {
-                    aiStatus.classList.add('d-none');
-                    fallbackStatus.classList.remove('d-none');
-                }
-            }
+            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Processing Claude Response...';
+            
+            // Update the story content with Claude's response
+            storyData.content = claudeResponse.message.content[0].text;
+            storyData.ai_powered = true;
+            storyData.generation_method = 'ai';
+            
+            // Now save the actual Claude-generated story to database
+            await saveClaudeStory(storyData, prompt);
+            
+            showStory(storyData);
+            
         } catch (error) {
-            console.log('Could not check AI status');
-            // Show fallback status by default
-            const fallbackStatus = document.getElementById('fallback-status');
-            fallbackStatus.classList.remove('d-none');
-        }
-    }
-    
-    // Rating system
-    document.querySelectorAll('input[name="rating"]').forEach(radio => {
-        radio.addEventListener('change', async function() {
-            if (!currentStoryId) return;
+            console.error('Claude generation failed:', error);
+            
+            // More specific error handling
+            let errorMessage = 'Claude AI generation failed';
+            if (error.message && error.message.includes('auth')) {
+                errorMessage = 'Claude AI authentication was cancelled or failed';
+            } else if (error.message && error.message.includes('network')) {
+                errorMessage = 'Network error connecting to Claude AI';
+            }
+            
+            // Fall back to template generation
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating with Template...';
             
             try {
-                const response = await fetch(`/api/stories/${currentStoryId}/rate/`, {
+                // Generate a fallback story using template method
+                const fallbackResponse = await fetch('/api/stories/generate/', {
                     method: 'POST',
+                    body: new FormData(form),
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ rating: parseInt(this.value) })
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Force-Template': 'true'  // Signal to force template generation
+                    }
                 });
                 
-                if (response.ok) {
-                    // Update button styles
-                    document.querySelectorAll('input[name="rating"]').forEach(r => {
-                        const label = document.querySelector(`label[for="${r.id}"]`);
-                        if (parseInt(r.value) <= parseInt(this.value)) {
-                            label.classList.remove('btn-outline-warning');
-                            label.classList.add('btn-warning');
-                        } else {
-                            label.classList.remove('btn-warning');
-                            label.classList.add('btn-outline-warning');
-                        }
-                    });
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    // Make sure it's not another Claude marker
+                    if (!fallbackData.content.startsWith('PUTER_CLAUDE_GENERATION||')) {
+                        showStory(fallbackData);
+                        // Show a more user-friendly message
+                        setTimeout(() => {
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-info alert-dismissible fade show';
+                            alertDiv.innerHTML = `
+                                <strong>Notice:</strong> ${errorMessage}. We've generated your story using our template system instead.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+                        }, 500);
+                        return;
+                    }
                 }
-            } catch (error) {
-                console.error('Error rating story:', error);
+            } catch (fallbackError) {
+                console.error('Fallback generation also failed:', fallbackError);
             }
-        });
-    });
+            
+            // If even fallback fails, show a simple template story
+            storyData.content = `Once upon a time, in a ${storyData.genre || 'magical'} world, an adventure began with ${prompt.split('Keywords/themes: ')[1]?.split('\n')[0] || 'mysterious elements'}. Though the AI couldn't generate this story, your imagination can continue this tale in countless wonderful directions.`;
+            storyData.ai_powered = false;
+            storyData.generation_method = 'fallback';
+            showStory(storyData);
+            
+            // Show error message
+            setTimeout(() => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Notice:</strong> ${errorMessage}. A basic story template was created instead. You can try again or edit this story as needed.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            }, 500);
+        }
+    }
     
-    // Favorite toggle
-    document.getElementById('favorite-btn').addEventListener('click', async function() {
-        if (!currentStoryId) return;
-        
+    async function saveClaudeStory(storyData, prompt) {
         try {
-            const response = await fetch(`/api/stories/${currentStoryId}/favorite/`, {
-                method: 'POST',
+            // Update the story in the database with the actual Claude content
+            const updateData = {
+                content: storyData.content,
+                ai_model_used: 'claude-sonnet-4',
+                generation_method: 'ai'
+            };
+            
+            await fetch(`/api/stories/${storyData.id}/`, {
+                method: 'PATCH',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
+                },
+                body: JSON.stringify(updateData)
             });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                const icon = this.querySelector('i');
-                if (data.is_favorite) {
-                    icon.classList.remove('far');
-                    icon.classList.add('fas');
-                    this.classList.remove('btn-outline-danger');
-                    this.classList.add('btn-danger');
-                    this.innerHTML = '<i class="fas fa-heart"></i> Favorited';
-                } else {
-                    icon.classList.remove('fas');
-                    icon.classList.add('far');
-                    this.classList.remove('btn-danger');
-                    this.classList.add('btn-outline-danger');
-                    this.innerHTML = '<i class="far fa-heart"></i> Add to Favorites';
-                }
-            }
         } catch (error) {
-            console.error('Error toggling favorite:', error);
+            console.error('Failed to update story with Claude content:', error);
         }
-    });
+    }
     
-    // Share/Public toggle
-    document.getElementById('share-btn').addEventListener('click', async function() {
-        if (!currentStoryId) return;
+    function showStory(storyData) {
+        const storyContent = document.getElementById('story-content');
         
-        try {
-            // This would require an API endpoint to toggle public status
-            // For now, just show a message
-            const isPublic = this.classList.contains('btn-primary');
-            
-            if (isPublic) {
-                this.classList.remove('btn-primary');
-                this.classList.add('btn-outline-primary');
-                this.innerHTML = '<i class="fas fa-share"></i> Make Public';
-                alert('Story made private');
-            } else {
-                this.classList.remove('btn-outline-primary');
-                this.classList.add('btn-primary');
-                this.innerHTML = '<i class="fas fa-share-alt"></i> Public';
-                alert('Story made public');
-            }
-        } catch (error) {
-            console.error('Error toggling public status:', error);
-        }
-    });
+        const aiBadge = storyData.ai_powered ? 
+            '<span class="badge bg-success mb-2"><i class="fas fa-robot"></i> Claude AI Powered</span>' :
+            '<span class="badge bg-secondary mb-2"><i class="fas fa-file-text"></i> Template Generated</span>';
+        
+        storyContent.innerHTML = `
+            ${aiBadge}
+            <h4>${storyData.title || 'Your Story'}</h4>
+            <div class="story-content mb-3" style="white-space: pre-wrap; line-height: 1.6;">
+                ${storyData.content}
+            </div>
+            <div class="story-meta text-muted">
+                <small>
+                    <i class="fas fa-tags"></i> Keywords: ${storyData.keywords}<br>
+                    <i class="fas fa-book"></i> Genre: ${storyData.genre}<br>
+                    <i class="fas fa-clock"></i> Generated: ${new Date(storyData.created_at).toLocaleString()}
+                </small>
+            </div>
+        `;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('storyModal'));
+        modal.show();
+    }
 });
 </script>
 {% endblock %} 
