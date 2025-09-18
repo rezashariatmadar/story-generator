@@ -10,8 +10,8 @@ psycopg2-binary==2.9.9
 
 # Phase 2 - Export functionality
 reportlab==4.4.3
-weasyprint==66.0
 
 # Optional dependencies for future enhancements
 # celery==5.3.4  # For async processing
-# redis==5.0.1   # For caching and Celery broker 
+# redis==5.0.1   # For caching and Celery broker
+# weasyprint==66.0  # Advanced PDF export (requires system dependencies) 

@@ -7,9 +7,6 @@ healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
-# Explicitly specify Python environment and build process
 [variables]
 PYTHON_VERSION = "3.12"
-PIP_NO_CACHE_DIR = "1"
-NIXPACKS_PYTHON_VERSION = "3.12"
-NIXPACKS_BUILD_CMD = "bash build.sh" 
+PIP_NO_CACHE_DIR = "1" 
