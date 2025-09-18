@@ -32,7 +32,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
 if RAILWAY_ENVIRONMENT:
     # Production settings for Railway
-    DEBUG = False
+    # Temporarily enable debug for initial deployment troubleshooting
+    DEBUG = config('DEBUG', default=True, cast=bool)
     
 # Allowed hosts configuration
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
@@ -48,11 +49,21 @@ if RAILWAY_ENVIRONMENT:
     if RAILWAY_PRIVATE_DOMAIN:
         ALLOWED_HOSTS.append(RAILWAY_PRIVATE_DOMAIN)
     
-    # Allow Railway subdomains
+    # Allow Railway subdomains and internal domains
     ALLOWED_HOSTS.extend([
         '.railway.app',
-        '.up.railway.app'
+        '.up.railway.app',
+        '.railway.internal',
+        'production-us-east4-eqdc4a.railway-registry.com'
     ])
+else:
+    # For Railway deployment, be more permissive
+    if not DEBUG:
+        ALLOWED_HOSTS.extend([
+            '.railway.app',
+            '.up.railway.app',
+            '.railway.internal'
+        ])
 
 
 # Application definition
@@ -200,15 +211,15 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Security settings for production
 if not DEBUG:
-    # HTTPS settings
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    # HTTPS settings - disable SSL redirect for Railway healthchecks
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
     SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     
-    # Cookie security
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Cookie security - disable for Railway compatibility
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
     
     # Security headers
     SECURE_CONTENT_TYPE_NOSNIFF = True
