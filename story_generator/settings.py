@@ -32,11 +32,18 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
 if RAILWAY_ENVIRONMENT:
     # Production settings for Railway
-    # Temporarily enable debug for initial deployment troubleshooting
-    DEBUG = config('DEBUG', default=True, cast=bool)
+    DEBUG = config('DEBUG', default=False, cast=bool)
     
 # Allowed hosts configuration
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+
+# CSRF Trusted Origins - Add Railway domains
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 # Add Railway domains if in production
 if RAILWAY_ENVIRONMENT:
@@ -46,8 +53,10 @@ if RAILWAY_ENVIRONMENT:
     
     if RAILWAY_PUBLIC_DOMAIN:
         ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
+        CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_PUBLIC_DOMAIN}')
     if RAILWAY_PRIVATE_DOMAIN:
         ALLOWED_HOSTS.append(RAILWAY_PRIVATE_DOMAIN)
+        CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_PRIVATE_DOMAIN}')
     
     # Allow Railway subdomains and internal domains
     ALLOWED_HOSTS.extend([
