@@ -158,15 +158,15 @@ document.addEventListener('DOMContentLoaded', function() {
             aiStatusSpinner.style.display = 'none';
             
             if (data.ai_available) {
-                aiStatusElement.className = 'alert alert-success mb-4';
-                aiStatusText.innerHTML = '<strong>🤖 Claude AI Powered</strong> - Enhanced story generation available!';
+                aiStatusElement.className = 'alert alert-info mb-4';
+                aiStatusText.innerHTML = '<strong>🤖 AI Powered</strong> - Requires user authentication (free AI via Puter.js)';
             } else {
-                aiStatusElement.className = 'alert alert-warning mb-4';
+                aiStatusElement.className = 'alert alert-success mb-4';
                 aiStatusText.innerHTML = '<strong>📝 Template Mode</strong> - Basic story generation available';
             }
         } catch (error) {
             aiStatusSpinner.style.display = 'none';
-            aiStatusElement.className = 'alert alert-warning mb-4';
+            aiStatusElement.className = 'alert alert-success mb-4';
             aiStatusText.innerHTML = '<strong>📝 Template Mode</strong> - Basic story generation available';
         }
     }
@@ -236,11 +236,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (response.ok) {
+                console.log('Story generation response:', data);
+                console.log('Content starts with marker:', data.content && data.content.startsWith('PUTER_CLAUDE_GENERATION||'));
+                
                 // Check if this is a Puter Claude generation marker
                 if (data.content && data.content.startsWith('PUTER_CLAUDE_GENERATION||')) {
+                    console.log('Detected Puter marker, calling handleClaudeGeneration');
                     await handleClaudeGeneration(data);
                 } else {
                     // Regular template generation
+                    console.log('Using template generation');
                     showStory(data);
                 }
             } else {
@@ -261,26 +266,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // Extract the prompt from the marker
             const prompt = storyData.content.split('PUTER_CLAUDE_GENERATION||')[1];
             
-            // Show Claude generation loading
-            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Authenticating with Claude AI...';
+            // Show AI generation loading
+            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Generating with AI...';
             
-            // Check if Puter is available and try to authenticate
+            // Check if Puter is available
             if (typeof puter === 'undefined') {
                 throw new Error('Puter.js not loaded');
             }
             
-            // Try to authenticate first (this might show a popup)
-            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Connecting to Claude AI...';
+            // Check if user is already signed in, if not, sign them in explicitly
+            generateBtn.innerHTML = '<i class="fas fa-user fa-spin"></i> Checking authentication...';
             
-            // Generate with Claude using Puter.js
-            const claudeResponse = await puter.ai.chat(prompt, {
-                model: 'claude-sonnet-4'
-            });
+            const isSignedIn = puter.auth.isSignedIn();
+            console.log('User signed in status:', isSignedIn);
             
-            generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Processing Claude Response...';
+            if (!isSignedIn) {
+                generateBtn.innerHTML = '<i class="fas fa-sign-in-alt fa-spin"></i> Please sign in to use AI...';
+                await puter.auth.signIn();
+                generateBtn.innerHTML = '<i class="fas fa-robot fa-spin"></i> Generating with AI...';
+            }
             
-            // Update the story content with Claude's response
-            storyData.content = claudeResponse.message.content[0].text;
+            // Simple call to Puter AI as per official documentation
+            console.log('Attempting Puter.js call with prompt:', prompt);
+            console.log('Puter object available:', typeof puter !== 'undefined');
+            
+            const claudeResponse = await puter.ai.chat(prompt);
+            console.log('Puter.js response:', claudeResponse);
+            console.log('Response type:', typeof claudeResponse);
+            
+            // Update the story content with the response
+            // Based on docs, response should be the text directly
+            storyData.content = claudeResponse;
             storyData.ai_powered = true;
             storyData.generation_method = 'ai';
             
@@ -293,11 +309,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Claude generation failed:', error);
             
             // More specific error handling
-            let errorMessage = 'Claude AI generation failed';
+            let errorMessage = 'AI generation failed';
             if (error.message && error.message.includes('auth')) {
-                errorMessage = 'Claude AI authentication was cancelled or failed';
+                errorMessage = 'Authentication was cancelled or failed';
+            } else if (error.message && error.message.includes('sign')) {
+                errorMessage = 'User cancelled sign-in process';
             } else if (error.message && error.message.includes('network')) {
-                errorMessage = 'Network error connecting to Claude AI';
+                errorMessage = 'Network error connecting to AI service';
             }
             
             // Fall back to template generation

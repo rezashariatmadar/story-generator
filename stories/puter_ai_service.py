@@ -10,12 +10,12 @@ class PuterAIStoryGenerator:
     """
     
     def __init__(self):
-        # Puter.js doesn't need API keys - it's always available
+        # Puter.js doesn't need API keys - it's always available per official docs
         self.client_available = True
-        logger.info("Puter.js Claude AI service initialized - no API key required!")
+        logger.info("Puter.js AI service initialized - no API key required per official documentation")
     
     def is_available(self) -> bool:
-        """Check if AI service is available - Puter.js is always available"""
+        """Check if AI service is available - Puter.js is always available per docs"""
         return self.client_available
     
     def generate_story(self, keywords: str, genre: str, length: str, tone: str) -> Dict[str, Any]:

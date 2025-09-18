@@ -43,9 +43,9 @@ def generate_story(request):
                 # Force template generation
                 story_result = puter_ai_generator._generate_simple(keywords, genre, length, tone)
             else:
-                # Generate story using AI service (with automatic fallback)
+            # Generate story using AI service (with automatic fallback)
                 story_result = puter_ai_generator.generate_story(keywords, genre, length, tone)
-            
+
             generation_time = time.time() - start_time
             
             # Create story object
